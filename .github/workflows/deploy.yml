@@ -32,6 +32,7 @@ jobs:
       run: |
         export NODE_OPTIONS="--max-old-space-size=4096"
         export VITE_GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+        export VITE_BASE_PATH="/sense360-flash"
         npx vite build --base="/sense360-flash/"
         
     - name: Setup Pages
