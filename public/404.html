@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting... - Sense360 Flash</title>
+    <script>
+        // GitHub Pages SPA fallback
+        // Redirect any 404 to the main page for client-side routing
+        const path = window.location.pathname.replace('/sense360-flash', '');
+        const query = window.location.search;
+        const hash = window.location.hash;
+        
+        window.location.replace('/sense360-flash/' + (path === '/' ? '' : path) + query + hash);
+    </script>
+</head>
+<body>
+    <p>Redirecting to Sense360 Flash...</p>
+</body>
+</html>

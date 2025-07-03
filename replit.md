@@ -84,10 +84,24 @@ Sense360 Flash is a modern, browser-based ESP32 firmware flashing tool designed 
 3. **Static Deployment**: Frontend assets deployed to GitHub Pages
 4. **API Integration**: Direct GitHub API calls from client (no backend required for production)
 
+## Deployment
+
+### GitHub Pages Configuration
+- **Base URL**: `/sense360-flash/` (configured for GitHub Pages)
+- **Build Output**: `dist/public/` (static files)
+- **Deployment**: Automated via GitHub Actions
+- **Custom 404**: SPA routing fallback included
+
+### GitHub Actions Workflow
+- Automated builds on push to main branch
+- Node.js 20 build environment
+- Deploys to GitHub Pages automatically
+- Includes proper permissions and artifact handling
+
 ## Changelog
 
 Changelog:
-- July 03, 2025. Initial setup
+- July 03, 2025. Initial setup and complete deployment configuration
 
 ## User Preferences
 
