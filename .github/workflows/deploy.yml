@@ -35,6 +35,23 @@ jobs:
         export VITE_BASE_PATH="/sense360-flash"
         npx vite build --base="/sense360-flash/"
         
+    - name: Copy firmware files to deployment
+      run: |
+        echo "Copying firmware files to deployment directory..."
+        mkdir -p ./dist/public/firmware
+        cp -r ./public/firmware/* ./dist/public/firmware/
+        echo "Firmware files copied successfully:"
+        ls -la ./dist/public/firmware/
+        echo "Verifying firmware file size:"
+        du -h ./dist/public/firmware/sense360_v2.v2.0.0.factory.bin
+        
+    - name: Verify deployment structure
+      run: |
+        echo "Deployment directory structure:"
+        find ./dist/public -name "*.bin" -type f
+        echo "Total files in deployment:"
+        find ./dist/public -type f | wc -l
+        
     - name: Setup Pages
       uses: actions/configure-pages@v4
       
