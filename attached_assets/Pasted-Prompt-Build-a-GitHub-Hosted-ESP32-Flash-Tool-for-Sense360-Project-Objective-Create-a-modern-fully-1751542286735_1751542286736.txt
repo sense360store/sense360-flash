@@ -1,0 +1,173 @@
+Prompt: Build a GitHub-Hosted ESP32 Flash Tool for Sense360
+Project Objective
+Create a modern, fully browser-based ESP32 firmware flash tool for Sense360 products, hosted on GitHub Pages with all firmware management handled via GitHub Releases. The tool must allow real-time device flashing, support for multiple firmware versions and release types, dynamic firmware selection, real-time logs, and a simple admin interface for managing device/firmware assignments.
+
+My GitHub Details
+GitHub username: sense360store
+
+Main repository: sense360-flash
+
+GitHub Pages URL:
+https://sense360store.github.io/sense360-flash/
+
+Firmware hosting:
+All firmware .bin files will be attached to GitHub Releases in this repository.
+
+Branding:
+Use "Sense360 Flash" for all UI/branding. Screenshots attached for design/UX reference.
+
+Preferred stack:
+React 18 + TypeScript + Tailwind CSS.
+
+Admin section:
+Use a placeholder password admin123 for dev/testing; this must be hidden from normal users.
+
+Firmware versioning:
+
+Filenames use semantic versioning, e.g. air_quality_monitor.v1.0.0.factory.bin, air_quality_monitor.v1.1.0.beta.bin
+
+All releases follow best practices:
+
+Stable = latest production version, e.g., v1.0.0
+
+Beta = for testing, e.g., v1.1.0-beta
+
+Each new release increments according to features/bugfixes (major.minor.patch)
+
+Multiple families: e.g., air_quality_monitor, co2_monitor, sense360_v2
+
+The firmware selection UI should categorize by type and tag (Stable, Beta, etc.)
+
+Release process:
+
+When I push a new release/tag to GitHub, the new firmware asset must be auto-discoverable in the web tool, categorized by tag (Stable/Beta/etc.), without any code changes.
+
+Features and Requirements
+1. Hosting & Architecture
+Runs 100% from GitHub Pages—no backend required for flashing and user UI.
+
+Uses GitHub Releases API for listing and downloading firmware assets.
+
+If CORS is an issue for firmware assets, suggest or support GitHub Packages or a CORS proxy pattern, but prioritize GitHub Releases and public hosting.
+
+2. Firmware Version Management
+Dynamically lists all available firmware assets and their tags from GitHub Releases.
+
+Supports multiple families and versions, e.g.:
+
+air_quality_monitor.v1.0.0.factory.bin (Stable)
+
+air_quality_monitor.v1.1.0.beta.bin (Beta)
+
+sense360_v2.v2.0.0.factory.bin (Stable)
+
+etc.
+
+Groups firmware in UI by type and release tag (e.g., "Air Quality Monitor - Stable", "Air Quality Monitor - Beta").
+
+Must not require code changes to add/remove firmware—just publish new releases/assets in GitHub.
+
+3. Flashing UI & Features
+Device connection and detection using Web Serial API, ESP Web Tools, or equivalent.
+
+Shows device info (chip, MAC address, available sensors).
+
+UI matches screenshots:
+
+Device connection at top
+
+Firmware selection by family and release type
+
+Flash and erase-only options
+
+Real-time log/terminal output
+
+Clean, professional, mobile-friendly layout
+
+Users can:
+
+Flash firmware
+
+Erase flash (factory reset)
+
+See all log output and error feedback
+
+4. Error Handling & Logging
+All process errors must be shown in the terminal/log and easily accessible for support/debugging.
+
+Error feedback should be actionable for both end users and developers/AI agents.
+
+5. Admin and Device Management
+Admin-only page (hidden/password-protected) to manage:
+
+Mapping of device MAC addresses to allowed firmware families/types (e.g., Sense360 V1, V2, V3, etc.)
+
+CRUD for MAC addresses and firmware assignments
+
+Placeholder UI and storage acceptable for now, but structure for future integration with a backend or GitHub Issues/PRs as a data source
+
+Non-admin users should not see MAC address mapping, only their available firmware choices.
+
+6. Device-Dependent Firmware Selection (Future Proof)
+If a device MAC address is registered/admin-mapped, only show allowed firmware families/types.
+
+Otherwise, show general options.
+
+7. Security
+Admin area must be secure and hidden from general users (placeholder password is fine for MVP).
+
+Do not expose admin functions or device mapping data in the public UI or API.
+
+8. UX and Accessibility
+Simple, branded, responsive design (see screenshots)
+
+Clear status indicators: “Device Connected”, progress bar, flashing/erasing status
+
+Fast, intuitive, minimal number of clicks
+
+Only show relevant options to each user
+
+9. Extensibility
+Structure code so it’s easy to add more firmware families, release tags, and admin options in the future
+
+Suggest best practices for release tagging and asset naming so the tool can scale
+
+Firmware Versioning & Structure (Best Practice)
+Firmware asset naming:
+
+{family}.{version}.{type}.bin
+
+Examples:
+
+air_quality_monitor.v1.0.0.factory.bin (Stable)
+
+air_quality_monitor.v1.1.0.beta.bin (Beta)
+
+co2_monitor.v2.0.0.factory.bin
+
+sense360_v2.v3.2.1.beta.bin
+
+GitHub Release tags:
+
+Tag releases as v1.0.0, v1.1.0-beta, etc.
+
+Categorize in UI:
+
+By family (Air Quality Monitor, CO2 Monitor, etc.)
+
+By type (Stable, Beta, etc.)
+
+By version (latest first)
+
+Deployment and Workflow
+Hosted at: https://sense360store.github.io/sense360-flash/
+
+User connects device via browser and can flash/erase with one click.
+
+Firmware is managed by uploading new assets to GitHub Releases—no code updates needed for new firmware.
+
+Admin manages device/firmware family mapping through a hidden admin page.
+
+Screenshots provided for UI reference.
+
+Please structure the code and logic to allow for fast iteration and scalability. Let me know if you need sample firmware assets or dummy data for testing, and use clear placeholder content where needed.
