@@ -74,38 +74,55 @@ const MOCK_RELEASES = [
 ];
 
 export class GitHubService {
-  private async fetchWithAuth(url: string): Promise<Response> {
+  private async fetchPublicReleases(url: string): Promise<Response> {
+    // Use minimal headers for public API access - no authentication needed
     const headers: HeadersInit = {
       'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'Sense360-Flash-Tool'
     };
 
-    // Add GitHub token if available
-    const token = import.meta.env.VITE_GITHUB_TOKEN;
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    return fetch(url, { headers });
+    return fetch(url, { 
+      headers,
+      // Add cache control to help with rate limiting
+      cache: 'default'
+    });
   }
 
   async getReleases(): Promise<GitHubRelease[]> {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchPublicReleases(
         `${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/releases`
       );
 
       if (!response.ok) {
-        // If GitHub API fails (e.g., repository doesn't exist yet), fall back to mock data
-        console.warn(`GitHub API error: ${response.status} ${response.statusText}. Using mock data for development.`);
-        return MOCK_RELEASES;
+        console.error(`GitHub API error: ${response.status} ${response.statusText}`);
+        console.error('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        // Check for rate limiting specifically
+        if (response.status === 403) {
+          const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
+          const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+          console.error(`Rate limit info: Remaining: ${rateLimitRemaining}, Reset: ${rateLimitReset}`);
+        }
+        
+        // Try to get response body for more details
+        const errorText = await response.text();
+        console.error('Error response body:', errorText);
+        
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }
 
-      return response.json();
+      const releases = await response.json();
+      console.log(`Successfully fetched ${releases.length} releases from GitHub`);
+      return releases;
     } catch (error) {
-      // Network or other errors - use mock data for development
-      console.warn('Failed to fetch releases from GitHub. Using mock data for development.', error);
-      return MOCK_RELEASES as GitHubRelease[];
+      console.error('Failed to fetch releases from GitHub:', error);
+      throw error;
     }
+  }
+
+  async getMockReleases(): Promise<GitHubRelease[]> {
+    return MOCK_RELEASES;
   }
 
   parseFirmwareFromReleases(releases: GitHubRelease[]): ParsedFirmware[] {

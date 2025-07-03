@@ -11,11 +11,20 @@ export function useGitHubReleases() {
   } = useQuery({
     queryKey: ['github-releases'],
     queryFn: async () => {
-      const releases = await githubService.getReleases();
-      return githubService.parseFirmwareFromReleases(releases);
+      try {
+        const releases = await githubService.getReleases();
+        return githubService.parseFirmwareFromReleases(releases);
+      } catch (error) {
+        // If GitHub API fails, use mock data as fallback
+        console.warn('GitHub API failed, using mock data:', error);
+        const mockReleases = await githubService.getMockReleases();
+        return githubService.parseFirmwareFromReleases(mockReleases);
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2, // Retry failed requests
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   const getFirmwareByFamily = (family?: string): ParsedFirmware[] => {
@@ -48,12 +57,14 @@ export function useGitHubReleases() {
 
   const getFamilies = (): string[] => {
     if (!releases) return [];
-    return [...new Set(releases.map(fw => fw.family))];
+    const familySet = new Set(releases.map(fw => fw.family));
+    return Array.from(familySet);
   };
 
   const getTypes = (): string[] => {
     if (!releases) return [];
-    return [...new Set(releases.map(fw => fw.type))];
+    const typeSet = new Set(releases.map(fw => fw.type));
+    return Array.from(typeSet);
   };
 
   return {
