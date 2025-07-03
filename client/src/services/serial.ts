@@ -49,10 +49,17 @@ export class SerialService {
   private writer: WritableStreamDefaultWriter | null = null;
   private onMessage?: (message: TerminalMessage) => void;
   private onFlashProgress?: (progress: FlashingState) => void;
+  private onConnectionChange?: (isConnected: boolean) => void;
   private mockConnected: boolean = false;
 
   constructor() {
     this.checkWebSerialSupport();
+    
+    // If Web Serial API is not available, automatically enable development mode
+    if (!navigator.serial || !window.isSecureContext) {
+      this.mockConnected = true;
+      console.log('SerialService: Auto-enabled development mode due to Web Serial API unavailable');
+    }
   }
 
   private checkWebSerialSupport(): void {
@@ -74,6 +81,10 @@ export class SerialService {
 
   setFlashProgressHandler(handler: (progress: FlashingState) => void): void {
     this.onFlashProgress = handler;
+  }
+
+  setConnectionChangeHandler(handler: (isConnected: boolean) => void): void {
+    this.onConnectionChange = handler;
   }
 
   private logMessage(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info'): void {
@@ -219,6 +230,11 @@ export class SerialService {
       this.logMessage(`MAC Address: ${deviceInfo.macAddress}`);
       this.logMessage(`Flash Size: ${deviceInfo.flashSize}`);
 
+      // Notify React components about connection change
+      if (this.onConnectionChange) {
+        this.onConnectionChange(true);
+      }
+
       return deviceInfo;
     } catch (error) {
       this.logMessage(`Connection failed: ${error}`, 'error');
@@ -308,6 +324,11 @@ export class SerialService {
       this.mockConnected = false;
 
       this.logMessage('Device disconnected', 'info');
+
+      // Notify React components about connection change
+      if (this.onConnectionChange) {
+        this.onConnectionChange(false);
+      }
     } catch (error) {
       this.logMessage(`Disconnect error: ${error}`, 'error');
     }
