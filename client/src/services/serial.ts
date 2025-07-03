@@ -49,6 +49,7 @@ export class SerialService {
   private writer: WritableStreamDefaultWriter | null = null;
   private onMessage?: (message: TerminalMessage) => void;
   private onFlashProgress?: (progress: FlashingState) => void;
+  private mockConnected: boolean = false;
 
   constructor() {
     this.checkWebSerialSupport();
@@ -206,17 +207,8 @@ export class SerialService {
       if (error instanceof Error && error.message.includes('permissions policy')) {
         this.logMessage('Falling back to mock connection for development...', 'warning');
         
-        // Create a mock port object to satisfy isConnected() check
-        this.port = {
-          readable: {} as ReadableStream<Uint8Array>,
-          writable: {} as WritableStream<Uint8Array>,
-          open: async () => {},
-          close: async () => {},
-          getInfo: () => ({ usbVendorId: 0x10c4, usbProductId: 0xea60 }),
-          addEventListener: () => {},
-          removeEventListener: () => {},
-          dispatchEvent: () => false
-        } as SerialPort;
+        // Set mock connection flag
+        this.mockConnected = true;
         
         // Return mock device info to allow development testing
         const mockDeviceInfo = await this.getDeviceInfo();
@@ -227,6 +219,7 @@ export class SerialService {
         return mockDeviceInfo;
       }
       
+      // Don't throw error for unhandled cases - let the calling function handle it
       throw error;
     }
   }
@@ -276,6 +269,9 @@ export class SerialService {
         await this.port.close();
         this.port = null;
       }
+
+      // Reset mock connection flag
+      this.mockConnected = false;
 
       this.logMessage('Device disconnected', 'info');
     } catch (error) {
@@ -365,7 +361,7 @@ export class SerialService {
   }
 
   isConnected(): boolean {
-    return this.port !== null && this.port.readable !== null;
+    return this.mockConnected || (this.port !== null && this.port.readable !== null);
   }
 }
 
