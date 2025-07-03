@@ -32,7 +32,7 @@ jobs:
       run: |
         export NODE_OPTIONS="--max-old-space-size=4096"
         export VITE_GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-        npx vite build --base="/sense360-flash/" --outDir="dist"
+        npx vite build --base="/sense360-flash/"
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
@@ -40,7 +40,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: ./dist
+        path: ./dist/public
         
     - name: Deploy to GitHub Pages
       id: deployment
