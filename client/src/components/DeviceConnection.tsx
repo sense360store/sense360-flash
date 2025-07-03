@@ -1,10 +1,20 @@
-import { Usb, Wifi, WifiOff } from 'lucide-react';
+import { Usb, Wifi, WifiOff, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeviceConnection } from '../hooks/useDeviceConnection';
+import { serialService } from '../services/serial';
 
 export function DeviceConnection() {
   const { isConnected, isConnecting, device, error, connect, disconnect } = useDeviceConnection();
+
+  const runDiagnostics = async () => {
+    try {
+      // This will trigger the diagnostic logging in the terminal
+      await serialService.runDiagnostics();
+    } catch (error) {
+      console.error('Diagnostic test failed:', error);
+    }
+  };
 
   return (
     <Card>
@@ -40,14 +50,24 @@ export function DeviceConnection() {
         
         <div className="flex space-x-3">
           {!isConnected ? (
-            <Button
-              onClick={connect}
-              disabled={isConnecting}
-              className="bg-sense360-blue hover:bg-indigo-700"
-            >
-              <Usb className="w-4 h-4 mr-2" />
-              {isConnecting ? 'Connecting...' : 'Connect Device'}
-            </Button>
+            <>
+              <Button
+                onClick={connect}
+                disabled={isConnecting}
+                className="bg-sense360-blue hover:bg-indigo-700"
+              >
+                <Usb className="w-4 h-4 mr-2" />
+                {isConnecting ? 'Connecting...' : 'Connect Device'}
+              </Button>
+              <Button
+                onClick={runDiagnostics}
+                variant="outline"
+                disabled={isConnecting}
+              >
+                <Bug className="w-4 h-4 mr-2" />
+                Test Diagnostics
+              </Button>
+            </>
           ) : (
             <Button
               onClick={disconnect}

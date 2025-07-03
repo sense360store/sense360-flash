@@ -1,5 +1,48 @@
 import { DeviceInfo, FlashingState, TerminalMessage } from '../types';
 
+// Web Serial API types to avoid TypeScript errors
+declare global {
+  interface Navigator {
+    serial: Serial;
+  }
+}
+
+interface Serial extends EventTarget {
+  requestPort(options?: SerialPortRequestOptions): Promise<SerialPort>;
+  getPorts(): Promise<SerialPort[]>;
+}
+
+interface SerialPortRequestOptions {
+  filters?: SerialPortFilter[];
+}
+
+interface SerialPortFilter {
+  usbVendorId?: number;
+  usbProductId?: number;
+}
+
+interface SerialPort extends EventTarget {
+  open(options: SerialOptions): Promise<void>;
+  close(): Promise<void>;
+  getInfo(): SerialPortInfo;
+  readable: ReadableStream<Uint8Array> | null;
+  writable: WritableStream<Uint8Array> | null;
+}
+
+interface SerialOptions {
+  baudRate: number;
+  dataBits?: number;
+  stopBits?: number;
+  parity?: 'none' | 'even' | 'odd';
+  bufferSize?: number;
+  flowControl?: 'none' | 'hardware';
+}
+
+interface SerialPortInfo {
+  usbVendorId?: number;
+  usbProductId?: number;
+}
+
 export class SerialService {
   private port: SerialPort | null = null;
   private reader: ReadableStreamDefaultReader | null = null;
@@ -39,22 +82,89 @@ export class SerialService {
 
   async requestPort(): Promise<SerialPort> {
     try {
-      this.logMessage('Requesting device access...');
+      // First run diagnostics
+      await this.runDiagnostics();
       
-      const port = await navigator.serial.requestPort({
-        filters: [
-          { usbVendorId: 0x10C4, usbProductId: 0xEA60 }, // CP2102
-          { usbVendorId: 0x1A86, usbProductId: 0x7523 }, // CH340
-          { usbVendorId: 0x0403, usbProductId: 0x6001 }, // FTDI
-          { usbVendorId: 0x239A }, // Adafruit boards
-        ]
-      });
+      this.logMessage('Requesting device access (no filters - like ESPHome Web)...');
+      
+      // Try without filters first (like ESPHome Web)
+      let port;
+      try {
+        port = await navigator.serial.requestPort();
+        this.logMessage('Device selected successfully (no filters)', 'success');
+      } catch (error) {
+        this.logMessage('No filters approach failed, trying with filters...', 'warning');
+        
+        // Fallback to filters if no-filters fails
+        port = await navigator.serial.requestPort({
+          filters: [
+            { usbVendorId: 0x10C4, usbProductId: 0xEA60 }, // CP2102
+            { usbVendorId: 0x1A86, usbProductId: 0x7523 }, // CH340
+            { usbVendorId: 0x0403, usbProductId: 0x6001 }, // FTDI
+            { usbVendorId: 0x239A }, // Adafruit boards
+            { usbVendorId: 0x303A }, // Espressif Systems
+            { usbVendorId: 0x1A86, usbProductId: 0x55D4 }, // CH9102
+            { usbVendorId: 0x0403, usbProductId: 0x6015 }, // FTDI FT231X
+            { usbVendorId: 0x2341 }, // Arduino
+            { usbVendorId: 0x16C0 }, // Various development boards
+          ]
+        });
+        this.logMessage('Device selected with filters', 'success');
+      }
 
-      this.logMessage('Device access granted', 'success');
+      // Log device info after selection
+      await this.logDeviceInfo(port);
+      
       return port;
     } catch (error) {
       this.logMessage(`Failed to request device: ${error}`, 'error');
       throw error;
+    }
+  }
+
+  async runDiagnostics(): Promise<void> {
+    try {
+      this.logMessage('=== DIAGNOSTIC INFO ===', 'info');
+      
+      // Check Web Serial support
+      const serialSupported = !!navigator.serial;
+      this.logMessage(`Web Serial supported: ${serialSupported}`, serialSupported ? 'success' : 'error');
+      
+      // Check secure context
+      const secureContext = window.isSecureContext;
+      this.logMessage(`Secure context (HTTPS): ${secureContext}`, secureContext ? 'success' : 'error');
+      
+      // Log current URL
+      this.logMessage(`Current URL: ${window.location.href}`, 'info');
+      
+      // Check available ports
+      if (navigator.serial) {
+        const availablePorts = await navigator.serial.getPorts();
+        this.logMessage(`Previously granted ports: ${availablePorts.length}`, 'info');
+        
+        if (availablePorts.length > 0) {
+          for (let i = 0; i < availablePorts.length; i++) {
+            const portInfo = await availablePorts[i].getInfo();
+            this.logMessage(`Port ${i + 1}: VID:${portInfo.usbVendorId?.toString(16)}, PID:${portInfo.usbProductId?.toString(16)}`, 'info');
+          }
+        }
+      }
+      
+      this.logMessage('=== END DIAGNOSTICS ===', 'info');
+    } catch (error) {
+      this.logMessage(`Diagnostic error: ${error}`, 'error');
+    }
+  }
+
+  private async logDeviceInfo(port: SerialPort): Promise<void> {
+    try {
+      const info = await port.getInfo();
+      this.logMessage('=== SELECTED DEVICE INFO ===', 'info');
+      this.logMessage(`USB Vendor ID: 0x${info.usbVendorId?.toString(16) || 'unknown'}`, 'info');
+      this.logMessage(`USB Product ID: 0x${info.usbProductId?.toString(16) || 'unknown'}`, 'info');
+      this.logMessage('=== END DEVICE INFO ===', 'info');
+    } catch (error) {
+      this.logMessage(`Could not get device info: ${error}`, 'warning');
     }
   }
 
