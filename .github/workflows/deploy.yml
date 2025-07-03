@@ -9,52 +9,40 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    
     permissions:
       contents: read
       pages: write
       id-token: write
-
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Debug: Show working directory before build
-        run: |
-          echo "Current directory before build:"
-          pwd
-          ls -al
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build for GitHub Pages
-        run: |
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          export VITE_GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-          npx vite build --base="/sense360-flash/" --outDir="dist"
-
-      - name: Debug: Show working directory before upload
-        run: |
-          echo "Current directory before upload:"
-          pwd
-          ls -al
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        if: github.ref == 'refs/heads/main'
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build for GitHub Pages
+      run: |
+        export NODE_OPTIONS="--max-old-space-size=4096"
+        export VITE_GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+        npx vite build --base="/sense360-flash/"
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./dist/public
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+      if: github.ref == 'refs/heads/main'
