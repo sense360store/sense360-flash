@@ -224,7 +224,7 @@ export class SerialService {
     }
   }
 
-  private async getDeviceInfo(): Promise<DeviceInfo> {
+  async getDeviceInfo(): Promise<DeviceInfo> {
     // In a real implementation, this would communicate with the ESP32
     // to get actual device information using ESP32 ROM bootloader commands
     
