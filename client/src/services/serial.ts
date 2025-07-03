@@ -203,8 +203,22 @@ export class SerialService {
     } catch (error) {
       this.logMessage(`Connection failed: ${error}`, 'error');
       
-      // Check if this is a permissions policy error
-      if (error instanceof Error && error.message.includes('permissions policy')) {
+      // Log the exact error for debugging
+      this.logMessage(`Connection error details: ${error}`, 'error');
+      this.logMessage(`Error type: ${typeof error}`, 'error');
+      if (error instanceof Error) {
+        this.logMessage(`Error message: "${error.message}"`, 'error');
+        this.logMessage(`Error name: "${error.name}"`, 'error');
+      }
+      
+      // Check if this is a permissions policy error or any Web Serial API not available error
+      if (error instanceof Error && (
+        error.message.includes('permissions policy') ||
+        error.message.includes('not supported') ||
+        error.message.includes('requestPort') ||
+        error.name === 'NotSupportedError' ||
+        error.name === 'NotAllowedError'
+      )) {
         this.logMessage('Falling back to mock connection for development...', 'warning');
         
         // Set mock connection flag
