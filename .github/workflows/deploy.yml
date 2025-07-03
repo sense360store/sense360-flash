@@ -28,10 +28,11 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Build
-      run: npm run build
-      env:
-        VITE_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build for GitHub Pages
+      run: |
+        export NODE_OPTIONS="--max-old-space-size=4096"
+        export VITE_GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+        npx vite build --base="/sense360-flash/" --outDir="dist/public"
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
