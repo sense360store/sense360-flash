@@ -65,6 +65,19 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
   const canFlash = isDeviceConnected && selectedFirmware && !flashingState.isFlashing;
   const canErase = isDeviceConnected && !flashingState.isFlashing;
 
+  // Debug logging to identify the issue
+  console.log('FlashingProcess Debug:', {
+    isDeviceConnected,
+    selectedFirmware: selectedFirmware ? {
+      id: selectedFirmware.id,
+      name: selectedFirmware.name,
+      downloadUrl: selectedFirmware.downloadUrl
+    } : null,
+    isFlashing: flashingState.isFlashing,
+    canFlash,
+    canErase
+  });
+
   const getStepStatus = (stepNumber: number): 'completed' | 'active' | 'pending' => {
     if (stepNumber === 1 && isDeviceConnected) return 'completed';
     if (stepNumber === 2 && selectedFirmware) return 'completed';
@@ -164,8 +177,8 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
             'text-blue-700'
           }`}>
             {flashingState.message || 
-             (canFlash ? 'Connect your device and select firmware to begin.' : 
-              'Please connect a device and select firmware.')}
+             (canFlash ? 'Ready to flash firmware.' : 
+              `Missing: ${!isDeviceConnected ? 'device connection' : ''}${!isDeviceConnected && !selectedFirmware ? ' and ' : ''}${!selectedFirmware ? 'firmware selection' : ''}.`)}
           </p>
         </div>
 

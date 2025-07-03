@@ -36,7 +36,22 @@ export function DeviceConnection() {
         
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-700 font-medium mb-2">Connection Error:</p>
             <p className="text-sm text-red-700">{error}</p>
+            
+            {error.includes('permissions policy') && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700 font-medium mb-2">Solution:</p>
+                <p className="text-sm text-blue-700">
+                  The Web Serial API is blocked in this environment. To use the flashing tool:
+                </p>
+                <ol className="text-sm text-blue-700 mt-2 space-y-1">
+                  <li>• Open the deployed app at: <strong>https://sense360store.github.io/sense360-flash/</strong></li>
+                  <li>• Use Chrome, Edge, or Opera browser (Web Serial API support required)</li>
+                  <li>• Make sure your device is connected via USB</li>
+                </ol>
+              </div>
+            )}
           </div>
         )}
         
