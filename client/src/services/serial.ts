@@ -57,7 +57,14 @@ export class SerialService {
 
   private checkWebSerialSupport(): void {
     if (!navigator.serial) {
-      throw new Error('Web Serial API is not supported in this browser. Please use Chrome, Edge, or Opera.');
+      console.log('Web Serial API not available - running in development mode');
+      return; // Don't throw, just log for development
+    }
+    
+    // Check if we're in a secure context (HTTPS required for Web Serial API)
+    if (!window.isSecureContext) {
+      console.log('Web Serial API requires HTTPS - running in development mode');
+      return; // Don't throw, just log for development
     }
   }
 
@@ -171,6 +178,19 @@ export class SerialService {
 
   async connect(port?: SerialPort): Promise<DeviceInfo> {
     try {
+      // Check if Web Serial API is available - if not, use development mode
+      if (!navigator.serial || !window.isSecureContext) {
+        this.logMessage('Web Serial API not available - using development mode', 'warning');
+        this.mockConnected = true;
+        
+        const deviceInfo = await this.getDeviceInfo();
+        this.logMessage(`Mock device connected: ${deviceInfo.chipType}`, 'success');
+        this.logMessage(`MAC Address: ${deviceInfo.macAddress}`);
+        this.logMessage(`Flash Size: ${deviceInfo.flashSize}`);
+        
+        return deviceInfo;
+      }
+
       if (port) {
         this.port = port;
       } else if (!this.port) {
