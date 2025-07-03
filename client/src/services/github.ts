@@ -139,7 +139,7 @@ export class GitHubService {
               version: parsed.version,
               family: parsed.family,
               type: parsed.type,
-              downloadUrl: asset.browser_download_url,
+              downloadUrl: `https://sense360store.github.io/sense360-flash/firmware/${asset.name}`,
               size: asset.size,
               releaseDate: new Date(release.published_at),
               description: release.body,
@@ -182,11 +182,26 @@ export class GitHubService {
   }
 
   async downloadFirmware(url: string): Promise<ArrayBuffer> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download firmware: ${response.status} ${response.statusText}`);
+    try {
+      const response = await fetch(url, {
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {
+          'Accept': 'application/octet-stream'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to download firmware: ${response.status} ${response.statusText}`);
+      }
+      
+      return response.arrayBuffer();
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('CORS')) {
+        throw new Error('CORS error: Unable to download firmware. Please ensure the firmware is available from a CORS-enabled source.');
+      }
+      throw error;
     }
-    return response.arrayBuffer();
   }
 
   getFamilyDisplayName(family: string): string {
