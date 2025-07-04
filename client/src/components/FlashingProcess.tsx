@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ParsedFirmware, FlashingState } from '../types';
-import { serialService } from '../services/serial';
+import { robustSerialService } from '../services/robust-serial';
 import { githubService } from '../services/github';
 import { SerialMonitor } from './SerialMonitor';
 
@@ -38,10 +38,10 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
       const firmwareData = await githubService.downloadFirmware(selectedFirmware.downloadUrl);
       
       // Set up flash progress handler
-      serialService.setFlashProgressHandler(setFlashingState);
+      robustSerialService.setFlashProgressHandler(setFlashingState);
       
       // Start flashing
-      await serialService.flashFirmware(firmwareData);
+      await robustSerialService.flashFirmware(firmwareData);
       
       // Flash completed
       onFlashComplete();
@@ -81,10 +81,10 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
       });
 
       // Set up flash progress handler to track erase progress
-      serialService.setFlashProgressHandler(setFlashingState);
+      robustSerialService.setFlashProgressHandler(setFlashingState);
       
       // Start erasing - this will show detailed progress
-      await serialService.eraseFlash();
+      await robustSerialService.eraseFlash();
       
       // Erase completed
       setFlashingState({
@@ -114,7 +114,7 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
         message: 'Reconnecting to device for monitoring...',
       });
 
-      await serialService.restartMonitoring();
+      await robustSerialService.restartMonitoring();
       
       setFlashingState({
         isFlashing: false,

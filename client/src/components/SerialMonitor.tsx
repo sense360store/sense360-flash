@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Download, Copy, Trash2, Settings, Monitor, X } from 'lucide-react';
 import { TerminalMessage } from '../types';
-import { serialService } from '../services/serial';
+import { robustSerialService } from '../services/robust-serial';
 
 interface SerialMonitorProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ export function SerialMonitor({ isOpen, onClose, isConnected }: SerialMonitorPro
   useEffect(() => {
     if (isOpen) {
       // Set up message handler when modal opens
-      serialService.setMessageHandler((message: TerminalMessage) => {
+      robustSerialService.setMessageHandler((message: TerminalMessage) => {
         setMessages(prev => [...prev, message]);
       });
       
@@ -35,7 +35,7 @@ export function SerialMonitor({ isOpen, onClose, isConnected }: SerialMonitorPro
     return () => {
       // Clean up when modal closes
       if (!isOpen) {
-        serialService.setMessageHandler(() => {});
+        robustSerialService.setMessageHandler(() => {});
       }
     };
   }, [isOpen, isConnected]);
@@ -43,7 +43,7 @@ export function SerialMonitor({ isOpen, onClose, isConnected }: SerialMonitorPro
   const startMonitoring = async () => {
     try {
       setIsMonitoring(true);
-      await serialService.restartMonitoring();
+      await robustSerialService.restartMonitoring();
     } catch (error) {
       console.error('Failed to start monitoring:', error);
       setIsMonitoring(false);
