@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ParsedFirmware, FlashingState } from '../types';
-import { espWebToolsService } from '../services/esp-web-tools';
+import { espWebToolsOfficialService } from '../services/esp-web-tools-official';
 import { githubService } from '../services/github';
 import { SerialMonitor } from './SerialMonitor';
 
@@ -38,10 +38,10 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
       const firmwareData = await githubService.downloadFirmware(selectedFirmware.downloadUrl);
       
       // Set up flash progress handler
-      espWebToolsService.setFlashProgressHandler(setFlashingState);
+      espWebToolsOfficialService.setFlashProgressHandler(setFlashingState);
       
       // Start flashing
-      await espWebToolsService.flashFirmware(firmwareData);
+      await espWebToolsOfficialService.flashFirmware(firmwareData);
       
       // Flash completed
       onFlashComplete();
@@ -81,10 +81,10 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
       });
 
       // Set up flash progress handler to track erase progress
-      espWebToolsService.setFlashProgressHandler(setFlashingState);
+      espWebToolsOfficialService.setFlashProgressHandler(setFlashingState);
       
       // Start erasing - this will show detailed progress
-      await espWebToolsService.eraseFlash();
+      await espWebToolsOfficialService.eraseFlash();
       
       // Erase completed
       setFlashingState({
@@ -114,7 +114,7 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
         message: 'Reconnecting to device for monitoring...',
       });
 
-      await espWebToolsService.restartMonitoring();
+      await espWebToolsOfficialService.restartMonitoring();
       
       setFlashingState({
         isFlashing: false,

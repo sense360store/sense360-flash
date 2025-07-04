@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DeviceConnectionState, DeviceInfo } from '../types';
-import { espWebToolsService } from '../services/esp-web-tools';
+import { espWebToolsOfficialService } from '../services/esp-web-tools-official';
 
 export function useDeviceConnection() {
   const [state, setState] = useState<DeviceConnectionState>({
@@ -11,7 +11,7 @@ export function useDeviceConnection() {
   // Synchronize React state with serial service state on mount and listen for changes
   useEffect(() => {
     const checkInitialConnection = async () => {
-      const serviceConnected = espWebToolsService.isConnected();
+      const serviceConnected = espWebToolsOfficialService.isConnected();
       console.log('useDeviceConnection: Initial connection check', { serviceConnected });
       
       setState({
@@ -31,14 +31,14 @@ export function useDeviceConnection() {
     };
 
     // Register connection change handler
-    espWebToolsService.setConnectionChangeHandler(handleConnectionChange);
+    espWebToolsOfficialService.setConnectionChangeHandler(handleConnectionChange);
 
     // Check initial connection
     checkInitialConnection();
 
     // Cleanup on unmount
     return () => {
-      espWebToolsService.setConnectionChangeHandler(() => {});
+      espWebToolsOfficialService.setConnectionChangeHandler(() => {});
     };
   }, []);
 
@@ -47,7 +47,7 @@ export function useDeviceConnection() {
     setState(prev => ({ ...prev, isConnecting: true, error: undefined }));
 
     try {
-      const deviceInfo = await espWebToolsService.connect();
+      const deviceInfo = await espWebToolsOfficialService.connect();
       console.log('useDeviceConnection: Connection successful', { deviceInfo });
       
       setState({
@@ -72,7 +72,7 @@ export function useDeviceConnection() {
 
   const disconnect = useCallback(async () => {
     try {
-      await espWebToolsService.disconnect();
+      await espWebToolsOfficialService.disconnect();
       setState({
         isConnected: false,
         isConnecting: false,
