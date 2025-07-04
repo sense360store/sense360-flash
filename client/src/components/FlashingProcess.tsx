@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Trash2, CheckCircle, Circle } from 'lucide-react';
+import { Download, Trash2, CheckCircle, Circle, Monitor } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -62,8 +62,36 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
     }
   };
 
+  const handleReconnectMonitor = async () => {
+    try {
+      setFlashingState({
+        isFlashing: true,
+        progress: 0,
+        stage: 'connecting',
+        message: 'Reconnecting to device for monitoring...',
+      });
+
+      await serialService.restartMonitoring();
+      
+      setFlashingState({
+        isFlashing: false,
+        progress: 100,
+        stage: 'complete',
+        message: 'Device monitoring restarted successfully',
+      });
+    } catch (error) {
+      setFlashingState({
+        isFlashing: false,
+        progress: 0,
+        stage: 'error',
+        message: `Reconnect failed: ${error}`,
+      });
+    }
+  };
+
   const canFlash = isDeviceConnected && selectedFirmware && !flashingState.isFlashing;
   const canErase = isDeviceConnected && !flashingState.isFlashing;
+  const canMonitor = isDeviceConnected && !flashingState.isFlashing;
 
   // Debug logging to identify the issue
   console.log('FlashingProcess Debug:', {
@@ -182,22 +210,34 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
           </p>
         </div>
 
-        <div className="flex space-x-4">
+        <div className="space-y-3">
+          <div className="flex space-x-4">
+            <Button
+              onClick={handleFlash}
+              disabled={!canFlash}
+              className="flex-1"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Flash Firmware
+            </Button>
+            <Button
+              onClick={handleErase}
+              disabled={!canErase}
+              variant="destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Erase Flash
+            </Button>
+          </div>
+          
           <Button
-            onClick={handleFlash}
-            disabled={!canFlash}
-            className="flex-1"
+            onClick={handleReconnectMonitor}
+            disabled={!canMonitor}
+            variant="outline"
+            className="w-full"
           >
-            <Download className="w-4 h-4 mr-2" />
-            Flash Firmware
-          </Button>
-          <Button
-            onClick={handleErase}
-            disabled={!canErase}
-            variant="destructive"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Erase Flash
+            <Monitor className="w-4 h-4 mr-2" />
+            Reconnect and Monitor
           </Button>
         </div>
       </CardContent>

@@ -51,6 +51,8 @@ export class SerialService {
   private onFlashProgress?: (progress: FlashingState) => void;
   private onConnectionChange?: (isConnected: boolean) => void;
   private mockConnected: boolean = false;
+  private isMonitoring: boolean = false;
+  private monitoringAbortController: AbortController | null = null;
 
   constructor() {
     this.checkWebSerialSupport();
@@ -230,6 +232,9 @@ export class SerialService {
       this.logMessage(`MAC Address: ${deviceInfo.macAddress}`);
       this.logMessage(`Flash Size: ${deviceInfo.flashSize}`);
 
+      // Start monitoring serial output
+      this.startSerialMonitoring();
+
       // Notify React components about connection change
       if (this.onConnectionChange) {
         this.onConnectionChange(true);
@@ -304,6 +309,9 @@ export class SerialService {
 
   async disconnect(): Promise<void> {
     try {
+      // Stop monitoring first
+      this.stopSerialMonitoring();
+      
       if (this.reader) {
         await this.reader.cancel();
         this.reader.releaseLock();
@@ -348,12 +356,15 @@ export class SerialService {
     }
 
     try {
+      // Stop monitoring during flashing to avoid interference
+      this.stopSerialMonitoring();
+      
       this.logMessage('=== STARTING ESP32 FIRMWARE FLASH ===', 'info');
       this.logMessage(`Firmware size: ${firmwareData.byteLength} bytes (${(firmwareData.byteLength / 1024).toFixed(1)} KB)`, 'info');
       
       this.onFlashProgress?.({
         isFlashing: true,
-        progress: 0,
+        progress: 5,
         stage: 'connecting',
         message: 'Preparing device for flashing...',
       });
@@ -361,19 +372,48 @@ export class SerialService {
       // Step 1: Put device into bootloader mode
       await this.enterBootloaderMode();
       
-      // Step 2: Erase flash
+      this.onFlashProgress?.({
+        isFlashing: true,
+        progress: 20,
+        stage: 'erasing',
+        message: 'Erasing flash memory...',
+      });
+      
+      // Step 2: Erase flash at application offset (0x10000)
       await this.eraseFlashMemory();
       
-      // Step 3: Write firmware
+      this.onFlashProgress?.({
+        isFlashing: true,
+        progress: 40,
+        stage: 'writing',
+        message: 'Writing firmware data...',
+      });
+      
+      // Step 3: Write firmware at correct offset (0x10000 for ESP32 app)
       await this.writeFirmwareData(firmwareData);
+      
+      this.onFlashProgress?.({
+        isFlashing: true,
+        progress: 80,
+        stage: 'verifying',
+        message: 'Verifying flash...',
+      });
       
       // Step 4: Verify flash
       await this.verifyFlash(firmwareData);
+      
+      this.onFlashProgress?.({
+        isFlashing: true,
+        progress: 95,
+        stage: 'complete',
+        message: 'Resetting device...',
+      });
       
       // Step 5: Reset device
       await this.resetDevice();
 
       this.logMessage('=== FIRMWARE FLASH COMPLETED SUCCESSFULLY ===', 'success');
+      this.logMessage('Device will reboot automatically', 'info');
       
       this.onFlashProgress?.({
         isFlashing: false,
@@ -381,6 +421,11 @@ export class SerialService {
         stage: 'complete',
         message: 'Firmware flashed successfully!',
       });
+      
+      // Restart monitoring to show device boot logs
+      this.logMessage('Restarting serial monitoring to show device boot logs...', 'info');
+      await this.delay(2000); // Wait for device to reset and boot
+      this.startSerialMonitoring();
     } catch (error) {
       this.logMessage(`=== FIRMWARE FLASH FAILED ===`, 'error');
       this.logMessage(`Error: ${error}`, 'error');
@@ -390,6 +435,12 @@ export class SerialService {
         stage: 'error',
         message: `Flash failed: ${error}`,
       });
+      
+      // Restart monitoring even after failure to capture device state
+      this.logMessage('Restarting serial monitoring to capture device state...', 'info');
+      await this.delay(1000);
+      this.startSerialMonitoring();
+      
       throw error;
     }
   }
@@ -497,6 +548,11 @@ export class SerialService {
     await this.delay(500);
     this.logMessage('=== FIRMWARE FLASH COMPLETED SUCCESSFULLY ===', 'success');
     this.logMessage('Device will reboot automatically', 'info');
+    
+    // Restart monitoring to show device boot logs
+    this.logMessage('Restarting serial monitoring to show device boot logs...', 'info');
+    await this.delay(1000);
+    this.restartMonitoring();
   }
 
   private async enterBootloaderMode(): Promise<void> {
@@ -671,6 +727,195 @@ export class SerialService {
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private startSerialMonitoring(): void {
+    if (this.isMonitoring) {
+      return;
+    }
+    
+    this.isMonitoring = true;
+    this.monitoringAbortController = new AbortController();
+    
+    if (this.mockConnected) {
+      this.startMockMonitoring();
+    } else {
+      this.startRealSerialMonitoring();
+    }
+  }
+
+  private stopSerialMonitoring(): void {
+    if (!this.isMonitoring) {
+      return;
+    }
+    
+    this.isMonitoring = false;
+    
+    if (this.monitoringAbortController) {
+      this.monitoringAbortController.abort();
+      this.monitoringAbortController = null;
+    }
+    
+    this.logMessage('Serial monitoring stopped', 'info');
+  }
+
+  private startMockMonitoring(): void {
+    // Simulate device boot messages
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] ESP-ROM:esp32s3-20210327', 'info');
+    }, 1000);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] Build:Mar 27 2021', 'info');
+    }, 1200);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] rst:0x1 (POWERON_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)', 'info');
+    }, 1500);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (31) boot: ESP-IDF v4.4.4 2nd stage bootloader', 'info');
+    }, 2000);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (56) boot: Partition Table:', 'info');
+    }, 2500);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (82) boot:  2 factory          factory app      00 00 00010000 00100000', 'info');
+    }, 3000);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (130) cpu_start: Project name:     sense360_v2', 'info');
+    }, 3500);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (135) cpu_start: App version:      v2.0.0', 'info');
+    }, 4000);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (224) main: Sense360 v2.0.0 starting...', 'success');
+    }, 4500);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (234) main: Initializing WiFi...', 'info');
+    }, 5000);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (244) main: Initializing sensors...', 'info');
+    }, 5500);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (254) main: System initialization complete', 'success');
+    }, 6000);
+    
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      this.logMessage('[DEVICE] I (264) main: Starting main application loop...', 'info');
+    }, 6500);
+    
+    // Continue with periodic status messages
+    setTimeout(() => {
+      if (!this.isMonitoring) return;
+      
+      const messages = [
+        '[DEVICE] I (30000) sensors: Temperature: 22.5°C, Humidity: 45%',
+        '[DEVICE] I (60000) sensors: CO2: 412 ppm, VOC: 0.5 ppm',
+        '[DEVICE] I (90000) wifi: Connected to WiFi network',
+        '[DEVICE] I (120000) sensors: PM2.5: 12 μg/m³, PM10: 18 μg/m³',
+        '[DEVICE] I (150000) main: System status: OK',
+      ];
+      
+      let messageIndex = 0;
+      const interval = setInterval(() => {
+        if (!this.isMonitoring) {
+          clearInterval(interval);
+          return;
+        }
+        
+        this.logMessage(messages[messageIndex % messages.length], 'info');
+        messageIndex++;
+      }, 30000);
+    }, 7000);
+  }
+
+  private async startRealSerialMonitoring(): Promise<void> {
+    if (!this.port || !this.reader) {
+      this.logMessage('Cannot start monitoring: no serial port available', 'error');
+      return;
+    }
+    
+    this.logMessage('Starting serial monitoring...', 'info');
+    
+    try {
+      const textDecoder = new TextDecoder();
+      let buffer = '';
+      
+      while (this.isMonitoring) {
+        const { value, done } = await this.reader.read();
+        
+        if (done) {
+          this.logMessage('Serial monitoring ended', 'info');
+          break;
+        }
+        
+        // Decode the received data
+        const text = textDecoder.decode(value, { stream: true });
+        buffer += text;
+        
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep the incomplete line in buffer
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            // Determine message type based on content
+            let messageType: 'info' | 'warning' | 'error' | 'success' = 'info';
+            
+            if (trimmedLine.includes('ERROR') || trimmedLine.includes('FAIL')) {
+              messageType = 'error';
+            } else if (trimmedLine.includes('WARNING') || trimmedLine.includes('WARN')) {
+              messageType = 'warning';
+            } else if (trimmedLine.includes('SUCCESS') || trimmedLine.includes('OK') || trimmedLine.includes('READY')) {
+              messageType = 'success';
+            }
+            
+            this.logMessage(`[DEVICE] ${trimmedLine}`, messageType);
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        this.logMessage('Serial monitoring stopped', 'info');
+      } else {
+        this.logMessage(`Serial monitoring error: ${error}`, 'error');
+      }
+    }
+  }
+
+  // Public method to restart monitoring after flashing
+  async restartMonitoring(): Promise<void> {
+    this.logMessage('Restarting serial monitoring...', 'info');
+    this.stopSerialMonitoring();
+    
+    // Wait a bit for the device to settle
+    await this.delay(1000);
+    
+    // Restart monitoring
+    this.startSerialMonitoring();
   }
 
   isConnected(): boolean {
