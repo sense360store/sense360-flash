@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DeviceConnectionState, DeviceInfo } from '../types';
-import { robustSerialService } from '../services/robust-serial';
+import { espWebFlashService } from '../services/esp-web-flash';
 
 export function useDeviceConnection() {
   const [state, setState] = useState<DeviceConnectionState>({
@@ -11,7 +11,7 @@ export function useDeviceConnection() {
   // Synchronize React state with serial service state on mount and listen for changes
   useEffect(() => {
     const checkInitialConnection = async () => {
-      const serviceConnected = robustSerialService.isConnected();
+      const serviceConnected = espWebFlashService.isConnected();
       console.log('useDeviceConnection: Initial connection check', { serviceConnected });
       
       setState({
@@ -31,14 +31,14 @@ export function useDeviceConnection() {
     };
 
     // Register connection change handler
-    robustSerialService.setConnectionChangeHandler(handleConnectionChange);
+    espWebFlashService.setConnectionChangeHandler(handleConnectionChange);
 
     // Check initial connection
     checkInitialConnection();
 
     // Cleanup on unmount
     return () => {
-      robustSerialService.setConnectionChangeHandler(() => {});
+      espWebFlashService.setConnectionChangeHandler(() => {});
     };
   }, []);
 
@@ -47,7 +47,7 @@ export function useDeviceConnection() {
     setState(prev => ({ ...prev, isConnecting: true, error: undefined }));
 
     try {
-      const deviceInfo = await robustSerialService.connect();
+      const deviceInfo = await espWebFlashService.connect();
       console.log('useDeviceConnection: Connection successful', { deviceInfo });
       
       setState({
@@ -72,7 +72,7 @@ export function useDeviceConnection() {
 
   const disconnect = useCallback(async () => {
     try {
-      await robustSerialService.disconnect();
+      await espWebFlashService.disconnect();
       setState({
         isConnected: false,
         isConnecting: false,

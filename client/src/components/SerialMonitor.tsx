@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Download, Copy, Trash2, Settings, Monitor, X } from 'lucide-react';
 import { TerminalMessage } from '../types';
-import { robustSerialService } from '../services/robust-serial';
+import { espWebFlashService } from '../services/esp-web-flash';
 
 interface SerialMonitorProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ export function SerialMonitor({ isOpen, onClose, isConnected }: SerialMonitorPro
   useEffect(() => {
     if (isOpen) {
       // Set up message handler when modal opens
-      robustSerialService.setMessageHandler((message: TerminalMessage) => {
+      espWebFlashService.setMessageHandler((message: TerminalMessage) => {
         setMessages(prev => [...prev, message]);
       });
       
@@ -35,7 +35,7 @@ export function SerialMonitor({ isOpen, onClose, isConnected }: SerialMonitorPro
     return () => {
       // Clean up when modal closes
       if (!isOpen) {
-        robustSerialService.setMessageHandler(() => {});
+        espWebFlashService.setMessageHandler(() => {});
       }
     };
   }, [isOpen, isConnected]);
@@ -43,7 +43,7 @@ export function SerialMonitor({ isOpen, onClose, isConnected }: SerialMonitorPro
   const startMonitoring = async () => {
     try {
       setIsMonitoring(true);
-      await robustSerialService.restartMonitoring();
+      await espWebFlashService.restartMonitoring();
     } catch (error) {
       console.error('Failed to start monitoring:', error);
       setIsMonitoring(false);

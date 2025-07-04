@@ -2,7 +2,7 @@ import { Usb, Wifi, WifiOff, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeviceConnection } from '../hooks/useDeviceConnection';
-import { robustSerialService } from '../services/robust-serial';
+import { espWebFlashService } from '../services/esp-web-flash';
 
 export function DeviceConnection() {
   const { isConnected, isConnecting, device, error, connect, disconnect } = useDeviceConnection();
@@ -10,7 +10,7 @@ export function DeviceConnection() {
   const runDiagnostics = async () => {
     try {
       // This will trigger the diagnostic logging in the terminal
-      await robustSerialService.runDiagnostics();
+      await espWebFlashService.runDiagnostics();
     } catch (error) {
       console.error('Diagnostic test failed:', error);
     }
