@@ -3,7 +3,6 @@ import { Header } from '../components/Header';
 import { DeviceConnection } from '../components/DeviceConnection';
 import { FirmwareSelection } from '../components/FirmwareSelection';
 import { FlashingProcess } from '../components/FlashingProcess';
-import { Terminal } from '../components/Terminal';
 import { Sidebar } from '../components/Sidebar';
 import { Troubleshooting } from '../components/Troubleshooting';
 import { AdminPanel } from '../components/AdminPanel';
@@ -113,7 +112,6 @@ export function Home() {
           {/* Sidebar */}
           <div className="space-y-6">
             <Sidebar deviceInfo={device} showDeviceInfo={isConnected} />
-            <Terminal />
           </div>
         </div>
       </div>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Download, Trash2, CheckCircle, Circle, Monitor } from 'lucide-react';
+import { Download, Trash2, CheckCircle, Circle, Monitor, Terminal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ParsedFirmware, FlashingState } from '../types';
 import { serialService } from '../services/serial';
 import { githubService } from '../services/github';
+import { SerialMonitor } from './SerialMonitor';
 
 interface FlashingProcessProps {
   isDeviceConnected: boolean;
@@ -20,6 +21,7 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
     stage: 'idle',
     message: '',
   });
+  const [isSerialMonitorOpen, setIsSerialMonitorOpen] = useState(false);
 
   const handleFlash = async () => {
     if (!selectedFirmware) return;
@@ -44,6 +46,11 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
       // Flash completed
       onFlashComplete();
       
+      // Auto-open serial monitor after successful flash to show boot logs
+      setTimeout(() => {
+        setIsSerialMonitorOpen(true);
+      }, 1000);
+      
     } catch (error) {
       setFlashingState({
         isFlashing: false,
@@ -55,10 +62,46 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
   };
 
   const handleErase = async () => {
+    if (!isDeviceConnected) {
+      setFlashingState({
+        isFlashing: false,
+        progress: 0,
+        stage: 'error',
+        message: 'No device connected. Please connect a device first.',
+      });
+      return;
+    }
+
     try {
+      setFlashingState({
+        isFlashing: true,
+        progress: 0,
+        stage: 'erasing',
+        message: 'Erasing flash memory...',
+      });
+
+      // Set up flash progress handler to track erase progress
+      serialService.setFlashProgressHandler(setFlashingState);
+      
+      // Start erasing - this will show detailed progress
       await serialService.eraseFlash();
+      
+      // Erase completed
+      setFlashingState({
+        isFlashing: false,
+        progress: 100,
+        stage: 'complete',
+        message: 'Flash erased successfully! Device is ready for new firmware.',
+      });
+      
     } catch (error) {
       console.error('Erase failed:', error);
+      setFlashingState({
+        isFlashing: false,
+        progress: 0,
+        stage: 'error',
+        message: error instanceof Error ? error.message : 'Failed to erase flash memory',
+      });
     }
   };
 
@@ -231,16 +274,40 @@ export function FlashingProcess({ isDeviceConnected, selectedFirmware, onFlashCo
           </div>
           
           <Button
-            onClick={handleReconnectMonitor}
-            disabled={!canMonitor}
+            onClick={() => setIsSerialMonitorOpen(true)}
+            disabled={!isDeviceConnected}
             variant="outline"
             className="w-full"
           >
-            <Monitor className="w-4 h-4 mr-2" />
-            Reconnect and Monitor
+            <Terminal className="w-4 h-4 mr-2" />
+            Open Serial Monitor
           </Button>
+          
+          {flashingState.stage === 'complete' && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-900">Firmware Flashed Successfully!</span>
+              </div>
+              <p className="text-sm text-green-700 mb-3">
+                Your ESP32 device should now be running the new firmware. Click "Open Serial Monitor" to view device boot logs and verify operation.
+              </p>
+              <div className="space-y-1 text-xs text-green-600">
+                <p>• Device boot logs will show automatically</p>
+                <p>• WiFi setup and sensor initialization</p>
+                <p>• Download logs for troubleshooting</p>
+                <p>• Monitor real-time sensor data</p>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
+      
+      <SerialMonitor
+        isOpen={isSerialMonitorOpen}
+        onClose={() => setIsSerialMonitorOpen(false)}
+        isConnected={isDeviceConnected}
+      />
     </Card>
   );
 }
