@@ -90,7 +90,7 @@ export interface DeviceInfo {
 export interface FlashingState {
   isFlashing: boolean;
   progress: number;
-  stage: 'idle' | 'connecting' | 'erasing' | 'writing' | 'verifying' | 'complete' | 'error';
+  stage: 'idle' | 'connecting' | 'erasing' | 'writing' | 'verifying' | 'resetting' | 'complete' | 'error';
   message: string;
 }
 
