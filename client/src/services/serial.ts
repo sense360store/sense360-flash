@@ -361,6 +361,7 @@ export class SerialService {
       
       this.logMessage('=== STARTING ESP32 FIRMWARE FLASH ===', 'info');
       this.logMessage(`Firmware size: ${firmwareData.byteLength} bytes (${(firmwareData.byteLength / 1024).toFixed(1)} KB)`, 'info');
+      this.logMessage('Flash offset: 0x00000000 (compatible with ESPHome/esptool)', 'info');
       
       this.onFlashProgress?.({
         isFlashing: true,
@@ -379,7 +380,7 @@ export class SerialService {
         message: 'Erasing flash memory...',
       });
       
-      // Step 2: Erase flash at application offset (0x10000)
+      // Step 2: Erase flash at application offset (0x0)
       await this.eraseFlashMemory();
       
       this.onFlashProgress?.({
@@ -389,7 +390,7 @@ export class SerialService {
         message: 'Writing firmware data...',
       });
       
-      // Step 3: Write firmware at correct offset (0x10000 for ESP32 app)
+      // Step 3: Write firmware at correct offset (0x0 for ESP32 app like ESPHome/esptool)
       await this.writeFirmwareData(firmwareData);
       
       this.onFlashProgress?.({
@@ -448,6 +449,7 @@ export class SerialService {
   private async simulateDetailedFlashing(firmwareData: ArrayBuffer): Promise<void> {
     this.logMessage('=== STARTING ESP32 FIRMWARE FLASH (DEVELOPMENT MODE) ===', 'info');
     this.logMessage(`Firmware size: ${firmwareData.byteLength} bytes (${(firmwareData.byteLength / 1024).toFixed(1)} KB)`, 'info');
+    this.logMessage('Flash offset: 0x00000000 (compatible with ESPHome/esptool)', 'info');
     
     this.onFlashProgress?.({
       isFlashing: true,
@@ -492,12 +494,12 @@ export class SerialService {
     // Simulate detailed firmware writing
     this.logMessage('=== WRITING FIRMWARE DATA ===', 'info');
     this.logMessage('Starting firmware write process...', 'info');
-    this.logMessage(`Writing ${firmwareData.byteLength} bytes to flash at 0x00010000`, 'info');
+    this.logMessage(`Writing ${firmwareData.byteLength} bytes to flash at 0x00000000`, 'info');
     
     const chunks = Math.ceil(firmwareData.byteLength / 4096);
     for (let i = 0; i < chunks; i += Math.ceil(chunks / 8)) {
       const progress = 30 + Math.round((i / chunks) * 50);
-      const address = 0x10000 + (i * 4096);
+      const address = 0x0 + (i * 4096);
       const remaining = Math.min(chunks - i, Math.ceil(chunks / 8));
       
       this.logMessage(`Writing chunk ${i + 1}-${i + remaining} of ${chunks} (0x${address.toString(16).padStart(8, '0')})`, 'info');
@@ -602,7 +604,7 @@ export class SerialService {
     
     for (let i = 0; i < totalChunks; i += 50) {
       const progress = 30 + Math.round((i / totalChunks) * 50);
-      const address = 0x10000 + (i * 4096);
+      const address = 0x0 + (i * 4096);
       
       if (i % 100 === 0) {
         this.logMessage(`Writing at 0x${address.toString(16).padStart(8, '0')} (${Math.round((i / totalChunks) * 100)}%)`, 'info');
